@@ -4,14 +4,11 @@ from database import Base
 
 
 class Book(Base):
-    __tabelename__ = 'books'
+    __tablename__ = 'books'
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(50), unique=True)
-    genre: Column(String(10))
-    price: Column(Float)
-    book_id: Column(UUID)
-    user_id: Column(Integer)
+    userid = Column(Integer)
 
 class User(Base):
     __tablename__ = 'users'

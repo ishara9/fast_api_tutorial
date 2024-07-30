@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+    db:
+        environment:
+            MYSQL_ROOT_PASSWORD: admin
+            MYSQL_USER: admin
+            MYSQL_PASSWORD: admin
+        container_name: mysql-db
+        image: mysql:8.1
+        volumes:
+            -   mysql_volume2:/var/lib/mysql
+        ports:
+            -   3306:3306
+        networks:
+            - mysql_network
+        healthcheck:
+            test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
+            interval: 5s
+            timeout: 5s
+            retries: 55
+
+networks:
+    mysql_network:
+
+volumes:
+    mysql_volume2:
