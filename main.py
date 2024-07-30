@@ -8,10 +8,11 @@ from mangum import Mangum
 from fastapi import FastAPI, HTTPException, Depends, status
 from pydantic import BaseModel
 from typing import Annotated, Literal, Optional
-import models
-from database import SessionLocal, engine
+
 from sqlalchemy.orm import Session
 
+import models
+from database import SessionLocal, engine
 
 # BOOKS_FILE = "books.json"
 # BOOKS = []
@@ -22,16 +23,17 @@ from sqlalchemy.orm import Session
 
 app = FastAPI()
 
-models.Base.metadata.create_all(engine)
+models.Base.metadata.create_all(bind=engine)
 
-handler = Mangum(app)
+
+# handler = Mangum(app)
 
 
 class BookBase(BaseModel):
     name: str
     price: float
-    book_id: Optional[str] = uuid4().hex
     user_id: int
+
 
 class UserBase(BaseModel):
     username: str
@@ -44,12 +46,53 @@ def get_db():
     finally:
         db.close()
 
+
 db_dependency = Annotated[Session, Depends(get_db)]
+
 
 @app.get("/")
 async def root():
     return {"message": "Welcome to my bookstore app!"}
 
+
+@app.post("/users/", status_code=status.HTTP_201_CREATED)
+async def create_user(user: UserBase, db: db_dependency):
+    print(user)
+    db_user = models.User(**user.dict())
+    db.add(db_user)
+    db.commit()
+
+
+@app.get("/users/{user_id}", status_code=status.HTTP_200_OK)
+async def read_user(user_id: int, db: db_dependency):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail=f"User with id {user_id} not found")
+    return user
+
+
+@app.post("/books/", status_code=status.HTTP_201_CREATED)
+async def create_book(book: BookBase, db: db_dependency):
+    db_book = models.Book(**book.dict())
+    db.add(db_book)
+    db.commit()
+
+
+@app.get("/books/{book_id}", status_code=status.HTTP_200_OK)
+async def find_book(book_id: int, db: db_dependency):
+    book = db.query(models.Book).filter(models.Book.id == book_id).first()
+    if book is None:
+        raise HTTPException(status_code=404, detail=f"Book {book_id} is not available")
+    return book
+
+
+@app.delete("/books/{book_id}", status_code=status.HTTP_200_OK)
+async def delete_book(book_id: int, db: db_dependency):
+    book = db.query(models.Book).filter(models.Book.id == book_id).first()
+    if book is None:
+        raise HTTPException(status_code=404, detail=f"Book {book_id} is not found")
+    db.delete(book)
+    db.commit()
 
 # @app.get("/random-book")
 # async def random_book():
